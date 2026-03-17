@@ -150,5 +150,4 @@ python main.py --model stsnn --dropout 0.3 --epochs 100 --lr 1e-3
 ----------
 
 - 本代码可用于科研与教学用途，若在论文或项目中使用，请在致谢中提及本仓库。
-- EMGNet 结构参考自 EEGNet 及其在 sEMG 方向的变体（如 sEMGNet），可参考原论文：
 
