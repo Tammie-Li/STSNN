@@ -29,7 +29,6 @@ Code and data for paper Real-Time Gesture Recognition Using Multi-Channel sEMG S
 
 - `main.py`：训练与评估入口。
   - 支持 **两种模型**：
-    - `--model emgnet`：使用 EMGNet（默认，ANN 基线）。
     - `--model stsnn`：使用 STSNN（EMGNet + SNN）。
   - 支持 **两类实验设置**：
     - **单日实验（within-day）**：
@@ -139,36 +138,17 @@ python main.py --single_day
 python main.py --cross_day
 ```
 
-5. **切换模型与超参数示例**
+5. **模型训练与超参数示例**
 
 ```bash
-# 使用 EMGNet（ANN 基线），增加训练轮数
-python main.py --model emgnet --epochs 100 --lr 1e-3 --batch_size 64
 
 # 使用 STSNN（EMGNet 拓扑 + LIF），并适当减小 Dropout
 python main.py --model stsnn --dropout 0.3 --epochs 100 --lr 1e-3
 ```
-
-
-SNN 与 EMGNet 的关系
---------------------
-
-- EMGNet 使用连续激活（ELU），训练稳定、收敛快，是性能基线。
-- STSNN 在 EMGNet 拓扑基础上引入脉冲神经元（LIF）：
-  - 在时序卷积与空间/可分离卷积后的 BN 之后，使用 `ParametricLIFNode` 代替 ELU。
-  - 通过 `step_mode='m'` 使用时间维作为脉冲步长，保留原卷积结构与感受野。
-- 这种设计使得：
-  - STSNN 在表达能力和下采样方式上与 EMGNet 尽量一致。
-  - 实验中可以公平比较 ANN（EMGNet）与 SNN（STSNN）的性能差异。
-
 
 许可与引用
 ----------
 
 - 本代码可用于科研与教学用途，若在论文或项目中使用，请在致谢中提及本仓库。
 - EMGNet 结构参考自 EEGNet 及其在 sEMG 方向的变体（如 sEMGNet），可参考原论文：
-
-> Lawhern, V. J., Solon, A. J., Waytowich, N. R., Gordon, S. M., Hung, C. P., & Lance, B. J. (2018).  
-> EEGNet: a compact convolutional neural network for EEG-based brain–computer interfaces.  
-> *Journal of Neural Engineering*, 15(5), 056013.
 
