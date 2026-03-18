@@ -57,9 +57,8 @@ class EMGNet(nn.Module):
 
 class STSNN(nn.Module):
     """
-    在 EMGNet 结构基础上加入 SNN：拓扑与 EMGNet 一致（时序 Conv -> 空间深度 Conv -> 可分离 Conv -> FC），
-    将 BN 后的激活由 ELU 改为 ParametricLIF，以逼近 EMGNet 性能。
-    输入 (N, C, T) 如 (N, 8, 250)，输出 logits (N, num_classes)。
+    在 EMGNet 结构基础上加入 SNN；TC 为 (channel×time_point) 即 8×9 联合卷积。
+    卷积前在导联维（高）上补零，使 8×9 核滑动后导联维仍为 channel，不塌缩为 1。
     """
     def __init__(self, channel=8, time_length=250, num_classes=6, drop_out=0.4,
                  time_point=9, N_t=8, N_s=16):
@@ -68,13 +67,15 @@ class STSNN(nn.Module):
         self.time_length = time_length
         self.N_t = N_t
         self.N_s = N_s
-        # 与 EMGNet 一致的 Block 1：时序卷积 + BN + LIF
-        self.block_1_conv = nn.Conv2d(1, N_t, (1, time_point), padding=(0, time_point // 2), bias=False)
+        self._pad_ch = channel - 1
+        self.block_1_conv = nn.Conv2d(
+            1, N_t, (channel, time_point), padding=(0, time_point // 2), bias=False
+        )
         self.block_1_bn = nn.BatchNorm2d(N_t)
         self.block_1_lif = neuron.ParametricLIFNode(
             init_tau=2.0, surrogate_function=surrogate.Sigmoid(), step_mode="m"
         )
-        # Block 2：空间深度卷积 + BN + LIF + 池化 + Dropout
+        # Block 2：深度空间卷积 (channel, 1)，与 EMGNet 一致
         self.block_2_conv = nn.Conv2d(N_t, N_s, (channel, 1), groups=N_t, bias=False)
         self.block_2_bn = nn.BatchNorm2d(N_s)
         self.block_2_lif = neuron.ParametricLIFNode(
@@ -106,7 +107,10 @@ class STSNN(nn.Module):
         if x.size(-1) == 250:
             x = F.pad(x, (0, 6))
         x = x.unsqueeze(1)
-        # Block 1
+        ph = self._pad_ch
+        pt, pb = ph // 2, ph - ph // 2
+        x = F.pad(x, (0, 0, pt, pb))
+        # Block 1 -> (N, N_t, channel, T)
         x = self.block_1_conv(x)
         x = self.block_1_bn(x)
         x = self._lif_forward_2d(x, self.block_1_lif)
