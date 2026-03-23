@@ -4,7 +4,7 @@ This repository implements the classification of 6 classes of gestures/actions b
 
 - **STSNN**: Introduces spiking neurons (SNN) based on the L-EMGNet topology to explore the performance of brain-inspired computing in sEMG classification.
 
-The data consists of multi-channel sEMG + labels, segmented using a sliding window, and supports two types of experimental settings: within-day and cross-day.
+The data consists of multi-channel sEMG + labels, segmented using a sliding window, and supports two types of experimental settings: single-day and cross-day.
 
 ## Directory Structure
 
@@ -13,7 +13,7 @@ The data consists of multi-channel sEMG + labels, segmented using a sliding wind
   - Applies a **20–150 Hz 6th-order Butterworth bandpass filter** (zero-phase `filtfilt`) to the first **8 EMG channels**.
   - Slices the data by label using a **500 ms window / 250 ms sliding step**:
     - Sampling rate of 500 Hz → window length of 250 points, step size of 125 points.
-    - Only retains segments where all labels within the window are identical.
+    - Only retains segments where all labels single the window are identical.
   - Outputs:
     - `segments.npy`: Data segments with shape `(N, 8, 250)`.
     - `segments_labels.npy`: A label array of length `N`.
@@ -28,12 +28,12 @@ The data consists of multi-channel sEMG + labels, segmented using a sliding wind
   - Supports **two models**:
     - `--model stsnn`: Uses STSNN (EMGNet + SNN).
   - Supports **two types of experimental settings**:
-    - **Within-day experiment**:
+    - **single-day experiment**:
       - For Day1 and Day2 of each subject:
         - **First, shuffles** all segments and labels of the corresponding day (using seeded random shuffling to ensure reproducibility).
         - Then splits them into **80% training / 20% testing**.
-      - Calculates the test accuracy for Day1 and Day2 separately for each subject, taking the average of the two as the within-day result for that subject.
-      - Finally, reports the average within-day accuracy across all subjects.
+      - Calculates the test accuracy for Day1 and Day2 separately for each subject, taking the average of the two as the single-day result for that subject.
+      - Finally, reports the average single-day accuracy across all subjects.
     - **Cross-day experiment**:
       - For each subject:
         - **Trains on all Day1 data** and **tests on all Day2 data**.
