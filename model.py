@@ -4,57 +4,6 @@ import torch.nn.functional as F
 from spikingjelly.activation_based import neuron, surrogate, functional
 
 
-class EMGNet(nn.Module):
-    """
-    sEMGNet: 紧凑 CNN，适合 sEMG 分类。
-    输入 (N, C, T) 如 (N, 8, 250)，输出 logits (N, num_classes)。
-    """
-    def __init__(self, channel=8, time_length=250, num_classes=6, drop_out=0.4,
-                 time_point=9, N_t=8, N_s=16):
-        super(EMGNet, self).__init__()
-        self.channel = channel
-        self.time_length = time_length
-        # Block 1: 时序卷积 (1, time_point)
-        self.block_1 = nn.Sequential(
-            nn.Conv2d(1, N_t, (1, time_point), padding=(0, time_point // 2), bias=False),
-            nn.BatchNorm2d(N_t),
-        )
-        # Block 2: 深度卷积 (channel, 1) + 池化
-        self.block_2 = nn.Sequential(
-            nn.Conv2d(N_t, N_s, (channel, 1), groups=N_t, bias=False),
-            nn.BatchNorm2d(N_s),
-            nn.ELU(),
-            nn.AvgPool2d((1, 4)),
-            nn.Dropout(drop_out),
-        )
-        # Block 3: 深度可分离卷积 + 池化
-        self.block_3 = nn.Sequential(
-            nn.Conv2d(N_s, N_s, (1, N_s), padding=(0, N_s // 2), groups=N_s, bias=False),
-            nn.Conv2d(N_s, N_s, (1, 1), bias=False),
-            nn.BatchNorm2d(N_s),
-            nn.ELU(),
-            nn.AvgPool2d((1, 8)),
-            nn.Dropout(drop_out),
-        )
-        # 250 -> pad 6 -> 256; /4 -> 64; /8 -> 8; 特征 N_s*1*8 = 128
-        self.fc_dim = N_s * 1 * 8
-        self.fc = nn.Linear(self.fc_dim, num_classes)
-
-    def forward(self, x):
-        # (N, C, T) -> (N, 1, C, T)，时间维补到 256 便于对齐下采样
-        if x.size(-1) == 250:
-            x = F.pad(x, (0, 6))
-        x = x.unsqueeze(1)
-        x = self.block_1(x)
-        x = self.block_2(x)
-        x = self.block_3(x)
-        x = x.view(x.size(0), -1)
-        return self.fc(x)
-
-    def reset_net(self):
-        pass
-
-
 class STSNN(nn.Module):
     """
     在 EMGNet 结构基础上加入 SNN；TC 为 (channel×time_point) 即 8×9 联合卷积。
